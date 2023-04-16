@@ -17,7 +17,15 @@
 
 #include "skeletal_mesh.h"
 
+
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 
 namespace SkeletalAnimation {
     const char *vertex_shader_330 =
@@ -61,25 +69,193 @@ namespace SkeletalAnimation {
 static void error_callback(int error, const char *description) {
     fprintf(stderr, "Error: %s\n", description);
 }
-int choice;
+int keys;
+int choice = 19;
+bool update_time = 0;
+float move_step = 0.1;
 const int choice_num = 4;
-int update_time = 1;
+float angle_step = 0.02*M_PI;
+glm::fvec3 camera_eye = glm::fvec3(0.0, 0.0, -1.0);
+glm::fvec3 camera_center = glm::fvec3(0.0, 0.0, 0.0);
+glm::fvec3 camera_up = glm::fvec3(0.0, 1.0, 0.0);
+glm::fvec3 camera_back = glm::fvec3(0.0, 0.0, -1.0);
+//call back
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    keys = key;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
-        puts("asdasd");
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
-    if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
         choice = (choice_num + choice - 1) % choice_num;
     }
-    else if (key == GLFW_KEY_D && action == GLFW_PRESS) {
+    else if (key == GLFW_KEY_C && action == GLFW_PRESS) {
         choice = (choice_num + choice + 1) % choice_num;
     }
     else if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         update_time ^= 1;
     }
+    
 }
+void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+    
+}
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 
+}
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+
+}
+// drop!!!
+// void change_camera(glm::fvec3&eye, glm::fvec3&center, glm::fvec3&up)
+// {
+//     if (keys == GLFW_KEY_W) {
+//         eye = eye + move_step*up;
+//         center = center + move_step*up;
+//     }
+//     else if (keys == GLFW_KEY_UP) {
+//         glm::fvec3 rotate_axis = glm::cross(up,center - eye);
+//         glm::fmat3 rotate_mat = glm::fmat3(glm::rotate(glm::identity<glm::fmat4>(),
+//                                             -angle_step,
+//                                             rotate_axis));
+//         up = rotate_mat*up;
+//         glm::normalize(up);
+//         center = eye + rotate_mat*(center - eye);
+//     }
+//     else if (keys == GLFW_KEY_S) {
+//         eye = eye - move_step*up;
+//         center = center - move_step*up;
+//     } 
+//     else if (keys == GLFW_KEY_DOWN) {
+//         glm::fvec3 rotate_axis = glm::cross(up,center - eye);
+//         glm::fmat3 rotate_mat = glm::fmat3(glm::rotate(glm::identity<glm::fmat4>(),
+//                                             angle_step,
+//                                             rotate_axis));
+//         up = rotate_mat*up;
+//         glm::normalize(up);
+//         center = eye + rotate_mat*(center - eye);
+//     }
+//     else if (keys == GLFW_KEY_A) {
+//         glm::fvec3 left = glm::cross(up, center - eye);
+//         glm::normalize(left);
+//         eye = eye + move_step*left;
+//         center = center + move_step*left;
+//     }
+//     else if (keys == GLFW_KEY_LEFT) {
+//         glm::fvec3 rotate_axis = up;
+//         glm::fmat3 rotate_mat = glm::fmat3(glm::rotate(glm::identity<glm::fmat4>(),
+//                                             angle_step,
+//                                             rotate_axis));
+//         center = eye + rotate_mat*(center - eye);
+//     }
+//     else if (keys == GLFW_KEY_D) {
+//         glm::fvec3 left = glm::cross(up, center - eye);
+//         glm::normalize(left);
+//         eye = eye - move_step*left;
+//         center = center - move_step*left;
+//     }
+//     else if (keys == GLFW_KEY_RIGHT) {
+//         glm::fvec3 rotate_axis = up;
+//         glm::fmat3 rotate_mat = glm::fmat3(glm::rotate(glm::identity<glm::fmat4>(),
+//                                             -angle_step,
+//                                             rotate_axis));
+//         center = eye + rotate_mat*(center - eye);
+//     }
+//     else if (keys == GLFW_KEY_F) {
+//         eye -= camera_back;
+//         // center -= move_step * camera_back;
+//     }
+//     else if (keys == GLFW_KEY_B) {
+//         eye += camera_back;
+//         // center += camera_back;
+//     }
+//     keys = 0;
+// }
+//camera
+class camera {
+public:
+    glm::fvec3 pos;
+    glm::quat ang;
+    camera(glm::fvec3 pos, glm::quat ang):pos(pos), ang(ang){}
+    camera(float x, float y, float z, float a, float b, float c) {
+        pos = glm::fvec3(x, y, z);
+        ang = glm::angleAxis(glm::radians(a), glm::vec3(1.0f, 0.0f, 0.0f));
+        ang *= glm::angleAxis(glm::radians(b), glm::vec3(0.0f, 1.0f, 0.0f));
+        ang *= glm::angleAxis(glm::radians(c), glm::vec3(0.0f, 0.0f, 1.0f));
+    }
+    camera(){}
+    camera(const camera& c) {
+        pos = c.pos;
+        ang = c.ang;
+    }
+    camera operator - (camera t)const {
+        t.pos = pos - t.pos;
+        t.ang = ang - t.ang;
+        return t;
+    }
+    camera operator + (camera t)const {
+        t.pos = pos + t.pos;
+        t.ang = ang + t.ang;
+        return t;
+    }
+    camera operator * (float r)const {
+        camera t(*this);
+        t.pos *= r;
+        t.ang *= r;
+        return t;
+    }
+    static camera get_camera(float last_time, float cur_time, float next_time, const camera& last_camera, const camera& next_camera) {
+        // std::cout << last_time << " " << cur_time << " " << next_time << std::endl;
+        if (cur_time >= next_time) {
+            return next_camera;
+        }
+        float ratio = 1;
+        ratio = (cur_time - last_time) / (next_time - last_time);
+        if (ratio < 0) ratio = 0;
+        if (ratio > 1) ratio = 1;
+        //interpolation
+        ratio = 1 - std::pow((1 - ratio), 3);
+        return last_camera + ((next_camera - last_camera) * ratio);
+    }
+    glm::mat4 to_mat4() {
+        return glm::toMat4(ang) * glm::translate(glm::mat4(1.0f), -pos);
+    } 
+}cur_camera(0,1,0,0,0,0), last_camera(0,1,0,0,0,0), nxt_camera(-2.85,11.38,-8.94,-30.73,-26.37,54.15);
+// IMGUI
+//用于四元数计算
+float pos_x = 0, pos_y = 0, pos_z = 0;
+float ang_x = 0, ang_y = 0, ang_z = 0;
+float interval_time = 3;
+float last_time = 0;
+float cur_time = 0;
+float next_time = 3;
+void imgui_init(GLFWwindow *window) {
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 150");
+}
+void imgui_draw() {
+    ImGui::Checkbox("update", &update_time);
+    bool modify = false; //unused
+    
+    modify |= ImGui::SliderFloat("interval", &interval_time, 1.0F, 5.0F, "%.2f", 1.0F);
+    modify |= ImGui::SliderFloat("POS_X", &pos_x, -50.0F, 50.0F, "%.2f", 1.0F);
+    modify |= ImGui::SliderFloat("POS_Y", &pos_y, -50.0F, 50.0F, "%.2f", 1.0F);
+    modify |= ImGui::SliderFloat("POS_Z", &pos_z, -50.0F, 50.0F, "%.2f", 1.0F);
+    modify |= ImGui::SliderFloat("ANG_X", &ang_x, -90.0F, 90.0F, "%.2f", 1.0F);
+    modify |= ImGui::SliderFloat("ANG_Y", &ang_y, -180.0F, 180.0F, "%.2f", 1.0F);
+    modify |= ImGui::SliderFloat("ANG_Z", &ang_z, -180.0F, 180.0F, "%.2f", 1.0F);
+    if (ImGui::Button("Move")) {
+        modify = true;
+        last_time = cur_time;
+        nxt_camera = camera(pos_x, pos_y, pos_z, ang_x, ang_y, ang_z);
+        last_camera = cur_camera;
+        next_time = cur_time + interval_time;
+    }
+}
 int main(int argc, char *argv[]) {
     GLFWwindow *window;
     GLuint vertex_shader, fragment_shader, program;
@@ -103,13 +279,23 @@ int main(int argc, char *argv[]) {
     }
 
     glfwSetKeyCallback(window, key_callback);
+    // 鼠标位置变化事件
+    glfwSetCursorPosCallback(window, mouse_callback);
+
+
+// 鼠标滚轮事件
+    glfwSetScrollCallback(window, scroll_callback);
+
+    // 鼠标点击事件
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
 
     if (glewInit() != GLEW_OK)
         exit(EXIT_FAILURE);
-
+    imgui_init(window);
+    
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &SkeletalAnimation::vertex_shader_330, NULL);
     glCompileShader(vertex_shader);
@@ -133,15 +319,32 @@ int main(int argc, char *argv[]) {
 
     sr.setShaderInput(program, "in_position", "in_texcoord", "in_normal", "in_bone_index", "in_bone_weight");
 
-    float passed_time;
+    
     SkeletalMesh::SkeletonModifier modifier;
-
+    float passed_time = 0;
+    float tmp_passed_time = 0;
     glEnable(GL_DEPTH_TEST);
-    choice = 0;
+    choice = 10;
+    float dtime = 0;
+    float tmp_dtime = 0;
     while (!glfwWindowShouldClose(window)) {
-        if (update_time)
-            passed_time = (float) glfwGetTime();
-
+        // change_camera(camera_eye, camera_center, camera_up);
+        if (update_time) {
+            dtime += tmp_dtime;
+            tmp_dtime = 0;
+            passed_time = (float) glfwGetTime() - dtime;
+            tmp_passed_time = (float) glfwGetTime();
+        } else {
+            tmp_dtime =  glfwGetTime() - tmp_passed_time;
+        }
+        cur_time = (float) glfwGetTime();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        //modify camera
+       
+        cur_camera = camera::get_camera(last_time, cur_time, next_time, last_camera, nxt_camera);
+        
         // --- You may edit below ---
 
         // Example: Rotate the hand
@@ -156,7 +359,6 @@ int main(int argc, char *argv[]) {
         float PI_5 = M_PI / 5;
         float PI_6 = M_PI / 6;
         float metacarpals_angle = passed_time * (M_PI / 4.0f);
-        
         // * target = metacarpals
         // * rotation axis = (1, 0, 0)
         //modifier["metacarpals"] = glm::rotate(glm::identity<glm::mat4>(), metacarpals_angle, glm::fvec3(0.0, 1.0, 0.0));
@@ -309,13 +511,13 @@ int main(int argc, char *argv[]) {
         else if (choice == 2) {   // grasp
             float angle[4] = {swing(0, PI_2, period), swing(0, PI_2, period), swing(0, PI_2, period), swing(0, PI_4, period)};
             modifier["thumb_proximal_phalange"] = glm::rotate(glm::identity<glm::mat4>(), angle[3],
-                                                          glm::fvec3(0.0, 0, 1));
-            modifier["thumb_intermediate_phalange"] = glm::rotate(glm::identity<glm::mat4>(), angle[1],
-                                                            glm::fvec3(0, 0, 1.0));  
-            modifier["thumb_distal_phalange"] = glm::rotate(glm::identity<glm::mat4>(), angle[2],
-                                                            glm::fvec3(0, 0, 1.0));                                                                                                  
+                                                          glm::fvec3(0.0, -0.5, 1));
+            modifier["thumb_intermediate_phalange"] = glm::rotate(glm::identity<glm::mat4>(), angle[3],
+                                                            glm::fvec3(0, -0.5, 1.0));  
+            modifier["thumb_distal_phalange"] = glm::rotate(glm::identity<glm::mat4>(), angle[3],
+                                                            glm::fvec3(0, -0.5, 1.0));                                                                                                  
             modifier["thumb_fingertip"] = glm::rotate(glm::identity<glm::mat4>(), angle[3],
-                                                          glm::fvec3(0, 0, 1.0));  
+                                                          glm::fvec3(0, -0.5, 1.0));  
             modifier["index_proximal_phalange"] = glm::rotate(glm::identity<glm::mat4>(), angle[0],
                                                           glm::fvec3(0.0, 0.0, 1.0));
             modifier["index_intermediate_phalange"] = glm::rotate(glm::identity<glm::mat4>(), angle[1],
@@ -407,11 +609,18 @@ int main(int argc, char *argv[]) {
 
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glm::mat4 model;
+        model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        glm::mat4 view;
+        // 注意，我们将矩阵向我们要进行移动场景的反方向移动。
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        //glm::mat4 projection;
+        //projection = glm::perspective(glm::radians(45.0f), width / height, 0.1f, 100.0f);
 
         glUseProgram(program);
         glm::fmat4 mvp = glm::ortho(-12.5f * ratio, 12.5f * ratio, -5.f, 20.f, -20.f, 20.f)
                          *
-                         glm::lookAt(glm::fvec3(.0f, .0f, -1.f), glm::fvec3(.0f, .0f, .0f), glm::fvec3(.0f, 1.f, .0f));
+                         cur_camera.to_mat4();
         glUniformMatrix4fv(glGetUniformLocation(program, "u_mvp"), 1, GL_FALSE, (const GLfloat *) &mvp);
         glUniform1i(glGetUniformLocation(program, "u_diffuse"), SCENE_RESOURCE_SHADER_DIFFUSE_CHANNEL);
         SkeletalMesh::Scene::SkeletonTransf bonesTransf;
@@ -420,7 +629,9 @@ int main(int argc, char *argv[]) {
             glUniformMatrix4fv(glGetUniformLocation(program, "u_bone_transf"), bonesTransf.size(), GL_FALSE,
                                (float *) bonesTransf.data());
         sr.render();
-
+        imgui_draw();
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
